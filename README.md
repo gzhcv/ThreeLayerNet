@@ -1,8 +1,9 @@
-# Three Layer BP neural network using sigmoid active function
+Three Layer BP neural network using sigmoid active function
 
-# Reference
+## Reference
 《pattern classification》
+
 cs231n assignment2
 
-# Dependency
+## Dependency
 python3
