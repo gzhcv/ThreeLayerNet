@@ -1,0 +1,46 @@
+基于注意力机制的场景文本识别综述
+
+# 摘要
+
+场景文本识别因其广泛的应用而成为一个热门研究领域。
+注意力机制由Bahd[1]提出，用于神经机器翻译。神经机
+器翻译与场景文本识别都是序列到序列的任务，因此注意力
+机制被许多学者用于场景文本识别[2,3,4]。Cheng[3]等人
+发现复杂背景下的图片会出现注意力漂移的问题，并用字符
+位置的监督信息解决了这个问题，目前有许多学者提出不同
+的方法解决注意力漂移的问题[3,4,5,6]。本文将对这几种
+解决注意力漂移的方法进行一个梳理。
+
+
+# 引言
+场景文本识别输出的是一个字符序列，最直接的一个做法
+是对输入图片进行预分割，然后依次分类得到字符序列，
+但是其识别结果直接受预分割效果的影响。另一类方法是
+直接输出字符序列，这类方法面临的问题就是如何将输出的
+单个字符与输入的特征对齐。最早期是用隐马尔科夫模型解决
+了对齐的问题，然后Alex Graves于2006年提出CTC方法取代了
+隐马尔科夫模型，取得了更好的效果。
+
+
+# 相关研究
+
+Bahd提出的attention机制称为“软”注意力，关注的是全局信息，另一种注意力机制称为"硬"注意力，关注的是固定大小窗口的信息。Luong等人将
+上述两种机制融合，提出一种称为局部注意力机制的方法，
+
+ 
+[1] D. Bahdanau, K. Cho, and Y. Bengio. NeuralMachine Translation
+by Jointly Learning to Align and Translate. In ICLR,2015.
+
+[2] Wu Y C, Yin F, Zhang X Y, et al. SCAN: Sliding Convolutional Attention Network for Scene Text Recognition[J]. arXiv preprint
+arXiv:1806.00578, 2018.
+
+[3] Cheng, Zhanzhan, et al. "Focusing Attention: Towards Accurate Text Recognition in Natural Images." in Proc. IEEE Int. Conf. Comp.
+Vis., 2017.
+
+[4] He, Tong, et al. "An end-to-end TextSpotter with Explicit Alignment and Attention." in Proc. IEEE Conf. Comp. Vis. Patt.
+Recogn., 2018.
+
+[5] Yang, Xiao, et al. "Learning to Read Irregular Text with Attention Mechanisms." Twenty-Sixth International Joint Conference on Artificial Intelligence 2017.
+
+[6] Liu, W, C. Chen, and K. Wong. "Char-Net: A Character-Aware Neural Network for Distorted Scene Text Recognition." Twenty-Seventh International Joint Conference on Artificial Intelligence 2018.
+
