@@ -1,0 +1,254 @@
+################提性能的方法#################################
+
+batch_size
+Language Model
+feature
+data
+
+训练方法 
+
+seq2seq
+
+先用label作为输入进行训，训几轮考虑去掉label训
+
+##############################################################
+
+
+
+###############实验记录###################################################################
+
+# 1. 尝试用cnn_attention结构　
+
+lr 		  1e-3
+epoch 	  100
+
+实验一  
+
+cnn4层 + attention(rnn)  acc  10.6%  loss 0.067  align_loss  7  	 (0.001*align_loss)
+                      观察在验证集上attention的中心点，偏差非常大
+
+cnn6层 + attention(rnn)  acc  17.0%  loss 0.12   align_loss 3.06     (0 * align_loss)
+
+cnn6层 + attention(rnn)  acc  14.4%  loss 0.37   align_loss 0.123    (1 * align_loss)
+
+分析 
+
+以上表现极差的结果说明用lstm对上下文信息进行建模还是非常关键的。另外4层cnn后每一帧向量
+的感受野大概是20，占据图片5分之一，对于宽度比这个大的字符，加上lstm后就可以搞定。因为这
+里用的是双向lstm，所有编码后的每帧向量能获取到的信息理论上仍然是全局的，实际上附近几帧
+的信息也能轻松获取到。
+
+# 2. cnn+lstm+attention(lstm) (align_loss函数改为cross_entropy)
+
+1 * align_loss      acc 59.6%   loss 3.283  align_loss 3.195
+0.1 * align_loss    acc 56.4%   loss 0.400  align_loss 0.390
+0.01 * align_loss   acc 54.1%   loss 0.073  align_loss 0.039
+
+
+# 3. cnn+lstm+attention(lstm) (align_Loss函数改为EMD_Distance, 搬土距离)
+
+> attn_distribution也在关注的列区域做归一化
+
+max_accuracy = 0.522, avg_train_cost = 0.062, avg_train_align_cost = 0.047
+
+> align_loss * 5 倍
+
+max_accuracy = 0.520, avg_train_cost = 0.135, avg_train_align_cost = 0.023
+
+> 将attention关注的列数缩小五倍(因为感觉attention机制不需考虑这么多列向量)，发现align_Loss非常小。
+分析可知是因为对attn_distribution做了归一化，因为列数少了，自然EMD距离变小了。因此不能对
+attn_distribution做归一化。
+
+> attn_distribution不做归一化。字符长度L
+
+计算EMD距离的分布长度取L (gt取  L) 
+max_accuracy = 0.598, avg_train_cost = 0.408, avg_train_align_cost = 0.291
+
+计算EMD距离的分布长度取L/5 ( gt取 L/5 )
+max_accuracy = 0.589, avg_train_cost = 0.365, avg_train_align_cost = 0.274
+
+计算EMD距离的分布长度取L ( gt取 L )
+
+计算EMD距离的分布长度取50帧( gt取 L ) 
+
+##########################################################################################
+
+
+############################ 思路分析###################################################
+
+200w数据集训
+
+特征端 
+Resnet VGG16
+
+实验 
+
+1. 缩小感受野
+
+---------- arc1 ------------------------------
+layer 		sizes 	strides 	response_field
+conv1 		3x3  	1			3
+maxpool		2x2		2			3+1
+conv2       3x3     1           4+2x2
+conv3   	3x3	    1           8+2x2
+conv4       3x3     1           12+2x2
+
+--------- arc2 -------------------------------
+layer 		sizes 	strides 	response_field
+conv1 		3x3  	1			3
+conv2       3x3     1           3+2
+conv3   	3x3	    1           5+2
+conv4       3x3     1           7+2
+maxpool		2x2     2           9+1
+
+结果arc2 效果好像是52%。
+
+2. resnet-50提特征(attn)
+
+200w训练数据。 epoch 8 acc 86.7%
+
+50层卷积，kernel_size为3。每一帧的感受野都大于100了，也就是
+说每一帧都能看到整个图象。用vgg10层提特征acc能到93%。
+所以按感受野这个思路理解attention是不是有点问题？ 
+
+
+3. char level的标注去掉的方法。
+
+# 1) 滑动窗 提取s-hog特征
+
+# 2）直接用CNN特征
+
+
+4. attention取代rnn? 对于字符序列识别，可以给attention提供一些约束。
+例如。。。。。。
+
+
+5. s_{t-1} 与 cnn特征的每个向量计算相似度怎么样？
+
+6. 验证
+
+###### 一些想法 #####
+
+1. 尝试 
+
+二维attention， 多层attention(类似attention is all you need)
+
+2. 分析 
+
+attention是如何对齐的 ？ 可以考虑做个类似分析lstm三个门权值(MSRA)那篇文章的工作
+
+##################################################################################
+
+#######################结果分析###################################################
+
+# 50frame 比 25frame 效果好 
+# 是不是特征好的原因？
+# 或者是解码端序列长度比较合适？ 
+# 
+
+0.
+
+CNN后用LSTM进行序列建模的作用是什么？
+如果直接CNN+Attention(RNN) 怎么样？
+
+1. 
+
+attention 对encoder的特征做加权平均，在文本识别里这样用难以理解。
+多个区域的特征求和得到的结果怎么解释？它还是某个区域的特征吗。
+不如直接选权值最大的特征向量作为分类器的输入？
+
+
+2.
+
+# 用字符位置信息监督训练
+
+实验一
+
+结果：
+
+train 		 3841
+validation   908
+
+无字符位置信息	 	 					acc 57.5%  loss 0.003
+用字符位置信息(+ 0.1 * charloss )		acc 54.5%  loss 0.02
+用字符位置信息(+ 0.03 * charloss)		acc 55.0%  loss 0.009
+
+分析：
+
+观察acc与对应的loss，加入charloss对性能的提升没有帮助。
+
+无字符位置信息训练出的model, (0.1*char_loss)值为0.017，与用了字符位置信息训练出的model的charloss相当，说明加入charloss没有提高attention对齐的性能。
+
+(0.1*char_loss)值为0.02时，平均意义上一个20列宽的字符，attention后的中心点偏离groundtruth中心点5列，说明attention对齐有还有提升空间。
+
+实验二 
+
+尝试给charloss更高的权重进行实验。
+
+结果：
+用字符位置信息(+ 1 * charloss)          acc 50%    loss 0.06 (其中charloss为0.03)
+
+charloss为0.03， 平均意义上一个20列宽的字符，attention后的中心点偏离groundtruth中心点2列，
+基本上算是对齐了，但是正确率降低了。
+
+分析：
+以上结果的loss是训练集上的， acc是验证集上的。应该看验证集上的loss。
+
+无字符位置信息 							acc  57.5%	 loss为 1.585 charloss为0.337   
+用字符位置信息(+ 1 * charloss)      	acc  50.0%   loss为 1.9   charloss为0.49
+
+
+3. 
+
+每个特征向量映射到原图的中心点，计算正确吗？
+忽略了maxpooling的影响，四舍五入。
+
+#############################################################################################
+
+
+#############################s数据集#####################################
+http://www.robots.ox.ac.uk/~vgg/data/scenetext/
+
+VGG字符级标注 
+
+######################################################################
+
+#########################icdar13记录##############################
+CTC 100W_Train  epoch_11 acc 85.7%
+
+validation icdar13_1015sample_batch_is_8  71%
+###################################################################
+
+ 放弃本地修改					git checkout -- filepathname
+ 从别的分支复制文件				git checkout branch_name -- filepathname
+
+
+ #################################CTC VS ATTN ##############################
+
+ #CTC
+
+checkpoint./checkpoint/vgg4_50/ocr-model-91001
+acc 0.860
+
+checkpoint./checkpoint/vgg4_50/ocr-model-93001
+acc 0.857
+
+checkpoint./checkpoint/vgg4_50/ocr-model-95001
+acc 0.858
+
+#Attention
+
+checkpoint./checkpoint_Luong/ocr-model-90001
+acc 0.874
+
+checkpoint./checkpoint_Luong/ocr-model-92001
+acc 0.872
+
+checkpoint./checkpoint_Luong/ocr-model-94001
+acc 0.873
+
+# 数据集 train 3841 val 908
+
+ctc(rnn3_lr_1e-3)  56.6%
+
+####################################################################
